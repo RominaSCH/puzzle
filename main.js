@@ -1,0 +1,114 @@
+const container = document.querySelector(".image-container");
+const startButton = document.querySelector(".start-button");
+const gameText = document.querySelector(".game-text");
+const playTime = document.querySelector(".play-time");
+const score = document.querySelector(".score");
+
+const tileCount = 16;
+
+let tiles = [];
+const dragged = {
+    el: null,
+    class:null,
+    index:null,
+}
+let isPlaying = false;
+let timeInterval = null;
+let time = 0;
+
+//functions
+function checkStatus(){
+    const currentList = [...container.children];
+    const unMatchedList = currentList.filter((child, index) => Number(child.getAttribute("data-index")) !== index)
+    if(unMatchedList.length === 0){
+        gameText.style.display = "block";
+        score.style.display = "block";
+        isPlaying = false;
+        score.innerText = time;
+        clearInterval(timeInterval);
+    }
+}
+function setGame(){
+    time = 0;
+    clearInterval(timeInterval);
+    gameText.style.display = "none";
+    score.style.display = "none";
+    isPlaying = true;
+    container.innerHTML = "";
+
+    timeInterval = setInterval(()=>{
+        playTime.innerText = time;
+        time++;
+    }, 1000)
+
+    tiles = createImageTiles();
+    tiles.forEach(tile=>container.appendChild(tile));
+    setTimeout(()=>{
+        container.innerHTML = "";
+        shuffle(tiles).forEach(tile=>container.appendChild(tile));
+    },2000)
+    //forEach 인자 하나(tile)일때 ()괄호 생략가능
+    //forEach =>이후 한줄만 나오면 {}중괄호 생략가능  
+}
+
+function createImageTiles(){
+    const tempArray = [];
+    Array(tileCount).fill().forEach((_, i)=>{
+        const li = document.createElement("li");
+        li.setAttribute("data-index", i);
+        li.setAttribute("draggable", "true");
+        li.classList.add(`list${i}`);
+        tempArray.push(li);
+    })
+    return tempArray;
+}
+
+
+
+
+function shuffle(array){
+    let index = array.length -1;
+    while(index > 0){
+        const randomIndex = Math.floor(Math.random()*(index+1));
+        [array[index], array[randomIndex]] = [array[randomIndex], array[index]];
+        index--;
+    }
+    return array;
+}
+
+
+// events
+startButton.addEventListener("click", () => {
+    setGame()
+})
+container.addEventListener("dragstart", (e)=>{
+    if(!isPlaying) return;
+    const obj = e.target;
+    dragged.el = obj;
+    dragged.class = obj.className;
+    dragged.index = [...obj.parentNode.children].indexOf(obj);
+    //... 는 ES6 공부
+})
+container.addEventListener("dragover", (e)=>{
+    e.preventDefault();
+})
+container.addEventListener("drop", (e)=>{
+    const obj = e.target;
+
+    if(obj.className !== dragged.class){
+        let originPlace;
+        let isLast = false;
+
+        if(dragged.el.nextSibling){
+            originPlace = dragged.el.nextSibling
+        } else {
+            originPlace = dragged.el.previousSibling
+            isLast = true;
+        }
+
+        const droppedIndex = [...obj.parentNode.children].indexOf(obj);
+        dragged.index > droppedIndex ? obj.before(dragged.el) : obj.after(dragged.el);
+        isLast ? originPlace.after(obj) : originPlace.before(obj);//요게 핵심?
+    }// 요거이 중요하구만 기래
+    checkStatus();
+})
